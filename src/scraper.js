@@ -16,9 +16,9 @@ async function waitForUserInput(message = "Press Enter to continue...") {
 }
 
 export class Scraper {
-  constructor(browserController) {
-    this.browserController = browserController;
-    this.page = browserController.page;
+  constructor(page) {
+    this.page = page;
+    this.browserController = page.browser()._browserController;
   }
 
   /**
@@ -164,8 +164,10 @@ export class Scraper {
    * 获取商品详情
    */
   async getProductDetails(url) {
-    // 使用browserController创建新页面，确保应用了所有反爬策略
-    const newPage = await this.browserController.newPage();
+    // 创建新页面并设置反爬特征
+    const newPage = await this.page.browser().newPage();
+    await this.browserController.setupFingerprint(newPage);
+    await newPage.setDefaultNavigationTimeout(config.timeouts.pageLoad);
 
     try {
       // 随机延迟

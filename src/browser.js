@@ -19,6 +19,8 @@ export class BrowserController {
   async initialize() {
     try {
       this.browser = await puppeteer.launch(config.browser);
+      // 存储browserController引用
+      this.browser._browserController = this;
       console.log("浏览器启动成功");
     } catch (error) {
       console.error("浏览器启动失败:", error.message);
