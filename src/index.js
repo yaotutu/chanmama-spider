@@ -9,42 +9,87 @@ import { config } from "./config.js";
  * @param {Page} page - 页面实例
  * @returns {Promise<Array>} 商品数据数组
  */
+/**
+ * 处理单个商品
+ */
+async function processProduct(scraper, row, page, globalIndex, currentPage) {
+  try {
+    const titleLink = await row.$(config.selectors.productTitle);
+    if (!titleLink) {
+      return null;
+    }
+
+    const href = await page.evaluate((el) => el.href, titleLink);
+    const title = await page.evaluate(
+      (el) => el.textContent?.trim(),
+      titleLink
+    );
+
+    console.log(`\n处理商品[${globalIndex}]: ${title}`);
+    console.log(`链接: ${href}`);
+
+    // 在新标签页获取详细信息
+    const details = await scraper.getProductDetails(href);
+
+    // 添加商品信息
+    details.title = title;
+    details.index = globalIndex;
+    details.page = currentPage;
+
+    return details;
+  } catch (error) {
+    console.error("处理商品时出错:", error.message);
+    return null;
+  }
+}
+
+/**
+ * 并发处理一批商品
+ */
+async function processBatch(scraper, batch, page, startIndex, currentPage) {
+  const promises = batch.map((row, index) => {
+    const globalIndex = startIndex + index;
+    return processProduct(scraper, row, page, globalIndex, currentPage);
+  });
+
+  return Promise.all(promises);
+}
+
+/**
+ * 处理单页的商品数据
+ */
 async function processPage(scraper, rows, page, currentPage) {
   const products = [];
+  const batchSize = config.concurrency;
 
-  for (let i = 0; i < rows.length; i++) {
-    try {
-      const row = rows[i];
-      const titleLink = await row.$(config.selectors.productTitle);
-      if (titleLink) {
-        const href = await page.evaluate((el) => el.href, titleLink);
-        const title = await page.evaluate(
-          (el) => el.textContent?.trim(),
-          titleLink
-        );
+  // 将商品分成多个批次处理
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    const startIndex = (currentPage - 1) * rows.length + i + 1;
 
-        // 计算当前商品的全局序号（序号从1开始）
-        const globalIndex = (currentPage - 1) * rows.length + i + 1;
+    console.log(
+      `\n处理第${currentPage}页 - 批次${Math.floor(i / batchSize) + 1}`
+    );
 
-        console.log(`\n处理商品[${globalIndex}]: ${title}`);
-        console.log(`链接: ${href}`);
+    // 并发处理当前批次
+    const batchResults = await processBatch(
+      scraper,
+      batch,
+      page,
+      startIndex,
+      currentPage
+    );
 
-        // 在新标签页获取详细信息
-        const details = await scraper.getProductDetails(href);
+    // 过滤掉失败的结果，并按顺序添加到产品列表
+    products.push(...batchResults.filter((result) => result !== null));
 
-        // 添加商品信息
-        details.title = title;
-        details.index = globalIndex;
-        details.page = currentPage;
-        products.push(details);
-
-        // 输出进度
-        console.log(`当前页已处理 ${i + 1}/${rows.length} 个商品`);
-        console.log("------------------------");
-      }
-    } catch (error) {
-      console.error("处理商品时出错:", error.message);
-    }
+    // 输出进度
+    console.log(
+      `当前页已处理 ${Math.min(i + batchSize, rows.length)}/${
+        rows.length
+      } 个商品`
+    );
+    console.log("------------------------");
   }
 
   return products;

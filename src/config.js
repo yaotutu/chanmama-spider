@@ -67,7 +67,8 @@ export const config = {
     shopLabel: "span",
   },
 
-  // 翻页配置
+  // 抓取配置
+  concurrency: 10, // 并发处理数量
   pageLimit: 2, // 最大采集页数
 
   // 超时配置（毫秒）
