@@ -69,7 +69,7 @@ export const config = {
 
   // 抓取配置
   concurrency: 10, // 并发处理数量
-  pageLimit: 2, // 最大采集页数
+  pageLimit: 1, // 最大采集页数
 
   // 超时配置（毫秒）
   timeouts: {

@@ -1,62 +1,65 @@
-import fs from "fs/promises";
+import fs from "fs";
 import path from "path";
 
 export class Storage {
-  constructor() {
-    this.baseDir = "data";
-  }
-
   /**
-   * 获取当前日期格式化字符串
-   * @returns {string} YYYY-MM-DD格式的日期
+   * 获取当前时间字符串（精确到秒）
    */
-  getCurrentDate() {
+  static getCurrentTimeString() {
     const now = new Date();
-    return now.toISOString().split("T")[0];
+    return now
+      .toISOString()
+      .replace(/[-:]/g, "") // 移除日期中的-和:
+      .replace(/\..+/, "") // 移除毫秒部分
+      .replace("T", "_"); // 将T替换为_
   }
 
   /**
-   * 确保目录存在
-   * @param {string} dirPath - 目录路径
+   * 保存简化数据（仅title和productLink）
    */
-  async ensureDir(dirPath) {
+  static async saveSimpleData(products) {
+    const timestamp = this.getCurrentTimeString();
+    const filename = path.join("data", `${timestamp}.txt`);
+
+    const content = products
+      .map((product) => `${product.title}###@@${product.productLink}`)
+      .join("\n");
+
+    await fs.promises.writeFile(filename, content, "utf8");
+    console.log(`简化数据已保存到: ${filename}`);
+    return filename;
+  }
+
+  /**
+   * 保存完整数据（缓存）
+   */
+  static async saveCacheData(products) {
+    const timestamp = this.getCurrentTimeString();
+    const filename = path.join("data", "cache", `${timestamp}.txt`);
+
+    const content = JSON.stringify(products, null, 2);
+    await fs.promises.writeFile(filename, content, "utf8");
+    console.log(`完整数据已保存到: ${filename}`);
+    return filename;
+  }
+
+  /**
+   * 保存所有数据（同时保存简化和完整数据）
+   */
+  static async saveAllData(products) {
     try {
-      await fs.access(dirPath);
-    } catch {
-      await fs.mkdir(dirPath, { recursive: true });
-    }
-  }
+      const [simpleFile, cacheFile] = await Promise.all([
+        this.saveSimpleData(products),
+        this.saveCacheData(products),
+      ]);
 
-  /**
-   * 生成文件名
-   * @param {string} prefix - 文件名前缀
-   * @returns {string} 完整文件名
-   */
-  generateFilename(prefix) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    return `${prefix}_${timestamp}.json`;
-  }
-
-  /**
-   * 保存数据到JSON文件
-   * @param {Object} data - 要保存的数据
-   * @param {string} prefix - 文件名前缀
-   */
-  async saveToJson(data, prefix = "products") {
-    const currentDate = this.getCurrentDate();
-    const datePath = path.join(this.baseDir, currentDate);
-
-    // 确保日期目录存在
-    await this.ensureDir(datePath);
-
-    const filename = this.generateFilename(prefix);
-    const filepath = path.join(datePath, filename);
-
-    try {
-      await fs.writeFile(filepath, JSON.stringify(data, null, 2), "utf-8");
-      console.log(`数据已保存到: ${filepath}`);
+      return {
+        simpleFile,
+        cacheFile,
+        count: products.length,
+      };
     } catch (error) {
-      console.error(`保存数据失败: ${error.message}`);
+      console.error("保存数据时出错:", error);
       throw error;
     }
   }

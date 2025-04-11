@@ -1,5 +1,6 @@
 import { BrowserController } from "./browser.js";
 import { Scraper } from "./scraper.js";
+import { Storage } from "./storage.js";
 import { config } from "./config.js";
 
 /**
@@ -153,10 +154,15 @@ async function main() {
         currentPage++;
       }
 
+      // 保存数据
+      console.log("\n开始保存数据...");
+      const saveResult = await Storage.saveAllData(allProducts);
+
       // 输出最终结果
       console.log("\n采集完成!");
-      console.log(`共采集 ${currentPage} 页，${allProducts.length} 个商品`);
-      console.log("采集结果:", JSON.stringify(allProducts, null, 2));
+      console.log(`共采集 ${currentPage} 页，${saveResult.count} 个商品`);
+      console.log(`简化数据已保存到: ${saveResult.simpleFile}`);
+      console.log(`完整数据已保存到: ${saveResult.cacheFile}`);
     } catch (error) {
       console.error("获取商品列表失败:", error.message);
     }
