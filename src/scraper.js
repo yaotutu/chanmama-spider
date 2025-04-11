@@ -16,14 +16,35 @@ async function waitForUserInput(message = "Press Enter to continue...") {
 }
 
 export class Scraper {
-  constructor(page) {
-    this.page = page;
+  constructor(browserController) {
+    this.browserController = browserController;
+    this.page = browserController.page;
+  }
+
+  /**
+   * 随机移动鼠标到指定元素
+   */
+  async moveMouseToElement(page, element) {
+    const box = await element.boundingBox();
+    if (!box) return;
+
+    // 计算元素中心点
+    const targetX = box.x + box.width / 2;
+    const targetY = box.y + box.height / 2;
+
+    // 获取当前鼠标位置（默认在0,0）
+    const startX = 0;
+    const startY = 0;
+
+    await this.browserController.simulateMouseMovement(
+      page,
+      { x: startX, y: startY },
+      { x: targetX, y: targetY }
+    );
   }
 
   /**
    * 从页面获取商品链接
-   * @param {Page} page - Puppeteer页面实例
-   * @returns {Promise<string>} 商品链接
    */
   async getProductLink(page) {
     try {
@@ -32,6 +53,11 @@ export class Scraper {
       // 等待容器元素加载
       await page.waitForSelector(config.selectors.detailContainer);
       console.log("容器元素已加载");
+
+      await this.browserController.randomDelay();
+
+      // 模拟视觉扫描行为
+      await this.browserController.simulateNaturalScroll(page, 300);
 
       // 从容器中获取第一个链接
       const link = await page.evaluate((selector) => {
@@ -53,6 +79,13 @@ export class Scraper {
         return href;
       }, config.selectors);
 
+      // 找到链接后模拟鼠标hover
+      const linkElement = await page.$(config.selectors.detailContainer + " a");
+      if (linkElement) {
+        await this.moveMouseToElement(page, linkElement);
+        await this.browserController.randomDelay();
+      }
+
       console.log("获取到的链接:", link);
       return link;
     } catch (error) {
@@ -63,11 +96,11 @@ export class Scraper {
 
   /**
    * 获取品牌名称
-   * @param {Page} page - Puppeteer页面实例
-   * @returns {Promise<string>} 品牌名称
    */
   async getBrandName(page) {
     try {
+      await this.browserController.randomDelay();
+
       return await page.evaluate((selector) => {
         const container = document.querySelector(selector.detailContainer);
         if (!container) {
@@ -107,11 +140,11 @@ export class Scraper {
 
   /**
    * 获取店铺名称
-   * @param {Page} page - Puppeteer页面实例
-   * @returns {Promise<string>} 店铺名称
    */
   async getShopName(page) {
     try {
+      await this.browserController.randomDelay();
+
       return await page.evaluate((selector) => {
         const shopLabel = Array.from(document.querySelectorAll(selector)).find(
           (el) => el.textContent?.trim() === "小店"
@@ -129,21 +162,43 @@ export class Scraper {
 
   /**
    * 获取商品详情
-   * @param {string} url - 商品详情页URL
-   * @returns {Promise<Object>} 商品详情
    */
   async getProductDetails(url) {
-    const newPage = await this.page.browser().newPage();
+    // 使用browserController创建新页面，确保应用了所有反爬策略
+    const newPage = await this.browserController.newPage();
 
     try {
-      await newPage.goto(url, { waitUntil: "networkidle0" });
+      // 随机延迟
+      await this.browserController.randomDelay();
+
+      await newPage.goto(url, {
+        waitUntil: "networkidle0",
+        timeout: config.timeouts.pageLoad,
+      });
+
+      // 等待页面加载完成
       await newPage.waitForSelector(config.selectors.shopLabel);
+
+      // 模拟自然浏览行为
+      await this.browserController.simulateNaturalScroll(
+        newPage,
+        this.browserController.getRandomInt(300, 800)
+      );
+
+      // 随机延迟后再获取数据
+      await this.browserController.randomDelay();
 
       const [productLink, shopName, brandName] = await Promise.all([
         this.getProductLink(newPage),
         this.getShopName(newPage),
         this.getBrandName(newPage),
       ]);
+
+      // 最后再随机滚动一下
+      await this.browserController.simulateNaturalScroll(
+        newPage,
+        this.browserController.getRandomInt(-400, -100)
+      );
 
       return {
         shopName,
@@ -161,6 +216,8 @@ export class Scraper {
         timestamp: new Date().toISOString(),
       };
     } finally {
+      // 随机延迟后关闭页面
+      await this.browserController.randomDelay();
       await newPage.close();
     }
   }
