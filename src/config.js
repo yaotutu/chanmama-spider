@@ -17,7 +17,6 @@ export const config = {
     productRow: "tbody > tr",
     productTitle: "a.ellipsis-2, a.product-title",
     nextPageButton: ".el-pagination .btn-next:not(.is-disabled)",
-    pageLimit: "2",
 
     // 详情页
     detailContainer:
@@ -26,9 +25,13 @@ export const config = {
     shopLabel: "span",
   },
 
+  // 翻页配置
+  pageLimit: 2, // 最大采集页数
+
   // 超时配置（毫秒）
   timeouts: {
     pageLoad: 30000,
     elementWait: 5000,
+    pageDelay: 2000, // 翻页后等待时间
   },
 };
