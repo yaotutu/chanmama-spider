@@ -9,11 +9,12 @@ import { config } from "./config.js";
  * @param {Page} page - 页面实例
  * @returns {Promise<Array>} 商品数据数组
  */
-async function processPage(scraper, rows, page) {
+async function processPage(scraper, rows, page, currentPage) {
   const products = [];
 
-  for (const row of rows) {
+  for (let i = 0; i < rows.length; i++) {
     try {
+      const row = rows[i];
       const titleLink = await row.$(config.selectors.productTitle);
       if (titleLink) {
         const href = await page.evaluate((el) => el.href, titleLink);
@@ -22,18 +23,23 @@ async function processPage(scraper, rows, page) {
           titleLink
         );
 
-        console.log(`\n处理商品: ${title}`);
+        // 计算当前商品的全局序号（序号从1开始）
+        const globalIndex = (currentPage - 1) * rows.length + i + 1;
+
+        console.log(`\n处理商品[${globalIndex}]: ${title}`);
         console.log(`链接: ${href}`);
 
         // 在新标签页获取详细信息
         const details = await scraper.getProductDetails(href);
 
-        // 添加商品标题
+        // 添加商品信息
         details.title = title;
+        details.index = globalIndex;
+        details.page = currentPage;
         products.push(details);
 
         // 输出进度
-        console.log(`当前页已处理 ${products.length}/${rows.length} 个商品`);
+        console.log(`当前页已处理 ${i + 1}/${rows.length} 个商品`);
         console.log("------------------------");
       }
     } catch (error) {
@@ -74,7 +80,12 @@ async function main() {
         console.log(`当前页找到 ${rows.length} 个商品`);
 
         // 处理当前页的所有商品
-        const pageProducts = await processPage(scraper, rows, browser.page);
+        const pageProducts = await processPage(
+          scraper,
+          rows,
+          browser.page,
+          currentPage
+        );
         allProducts.push(...pageProducts);
 
         // 检查是否有下一页
