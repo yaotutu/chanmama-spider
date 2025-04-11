@@ -16,6 +16,8 @@ export const config = {
     // 列表页
     productRow: "tbody > tr",
     productTitle: "a.ellipsis-2, a.product-title",
+    nextPageButton: ".el-pagination .btn-next:not(.is-disabled)",
+    pageLimit: "2",
 
     // 详情页
     detailContainer:

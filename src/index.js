@@ -1,21 +1,6 @@
 import { BrowserController } from "./browser.js";
 import { Scraper } from "./scraper.js";
 import { config } from "./config.js";
-import readline from "readline";
-
-async function waitForUserInput(message = "Press Enter to continue...") {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(message + "\n", () => {
-      rl.close();
-      resolve();
-    });
-  });
-}
 
 async function main() {
   const browser = new BrowserController();
@@ -30,6 +15,7 @@ async function main() {
     console.log("登录完成，开始获取商品列表");
 
     const scraper = new Scraper(browser.page);
+    const allProducts = [];
 
     try {
       // 等待商品表格加载
@@ -41,9 +27,8 @@ async function main() {
       const rows = await browser.page.$$(config.selectors.productRow);
       console.log(`找到 ${rows.length} 个商品行`);
 
-      // 只测试第一个商品
-      if (rows.length > 0) {
-        const row = rows[0];
+      // 处理所有商品
+      for (const row of rows) {
         try {
           const titleLink = await row.$(config.selectors.productTitle);
           if (titleLink) {
@@ -60,17 +45,25 @@ async function main() {
             console.log(`链接: ${href}`);
 
             // 在新标签页获取详细信息
-            await waitForUserInput("准备获取商品链接，按回车继续...");
             const details = await scraper.getProductDetails(href);
-            await waitForUserInput("获取商品链接完成，按回车继续...");
 
-            // 输出结果
-            console.log("获取到的数据:", details);
+            // 添加商品标题
+            details.title = title;
+            allProducts.push(details);
+
+            // 输出进度
+            console.log(`已处理 ${allProducts.length}/${rows.length} 个商品`);
+            console.log("------------------------");
           }
         } catch (error) {
           console.error("处理商品时出错:", error.message);
         }
       }
+
+      // 输出结果统计
+      console.log("\n采集完成!");
+      console.log(`共处理 ${allProducts.length} 个商品`);
+      console.log("采集结果:", JSON.stringify(allProducts, null, 2));
     } catch (error) {
       console.error("获取商品列表失败:", error.message);
     }

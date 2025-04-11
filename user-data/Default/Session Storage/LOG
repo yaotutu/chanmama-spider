@@ -1,3 +1,6 @@
-2025/04/11-11:24:18.912 5794a27 Reusing MANIFEST /Users/yaotutu/Desktop/code/chanmama-spider/user-data/Default/Session Storage/MANIFEST-000001
-2025/04/11-11:24:18.912 5794a27 Recovering log #4
-2025/04/11-11:24:18.912 5794a27 Reusing old log /Users/yaotutu/Desktop/code/chanmama-spider/user-data/Default/Session Storage/000004.log 
+2025/04/11-11:41:04.907 579a693 Reusing MANIFEST /Users/yaotutu/Desktop/code/chanmama-spider/user-data/Default/Session Storage/MANIFEST-000001
+2025/04/11-11:41:04.907 579a693 Recovering log #4
+2025/04/11-11:41:04.908 579a693 Reusing old log /Users/yaotutu/Desktop/code/chanmama-spider/user-data/Default/Session Storage/000004.log 
+2025/04/11-11:43:41.481 579a695 Level-0 table #7: started
+2025/04/11-11:43:41.484 579a695 Level-0 table #7: 15971 bytes OK
+2025/04/11-11:43:41.486 579a695 Delete type=0 #4
